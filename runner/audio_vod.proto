@@ -1,0 +1,33 @@
+edition = "2023";
+
+package protobuf;
+
+import "commons.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "runner/protobuf";
+
+// A generation belongs to one request for one recording source. A replacement
+// invalidates it even when the new video has the same playlist URL.
+message AudioVODJob {
+  uint64 stream_id = 1;
+  StreamVersion version = 2;
+  string generation = 3;
+}
+
+message GenerateAudioVODResponse {
+  string job_id = 1;
+}
+
+message AudioVODSource {
+  string playlist_url = 1;
+}
+
+message AudioVODFinishedNotification {
+  AudioVODJob job = 1;
+  oneof result {
+    string playlist_url = 2;
+    google.protobuf.Empty no_audio = 3;
+    google.protobuf.Empty failed = 4;
+  }
+}

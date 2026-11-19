@@ -27,6 +27,7 @@ const (
 	RunnerService_GenerateLivePreview_FullMethodName  = "/protobuf.RunnerService/GenerateLivePreview"
 	RunnerService_RequestWaveform_FullMethodName      = "/protobuf.RunnerService/RequestWaveform"
 	RunnerService_CutVOD_FullMethodName               = "/protobuf.RunnerService/CutVOD"
+	RunnerService_GenerateAudioVOD_FullMethodName     = "/protobuf.RunnerService/GenerateAudioVOD"
 )
 
 // RunnerServiceClient is the client API for RunnerService service.
@@ -58,6 +59,8 @@ type RunnerServiceClient interface {
 	// Cuts parts out of one version of a recorded stream. Progress and the result are
 	// delivered like those of an upload: TranscodingProgress, VODReady and VODFailed.
 	CutVOD(ctx context.Context, in *CutVODRequest, opts ...grpc.CallOption) (*CutVODResponse, error)
+	// Queues audio extraction for one completed recording source.
+	GenerateAudioVOD(ctx context.Context, in *AudioVODJob, opts ...grpc.CallOption) (*GenerateAudioVODResponse, error)
 }
 
 type runnerServiceClient struct {
@@ -148,6 +151,16 @@ func (c *runnerServiceClient) CutVOD(ctx context.Context, in *CutVODRequest, opt
 	return out, nil
 }
 
+func (c *runnerServiceClient) GenerateAudioVOD(ctx context.Context, in *AudioVODJob, opts ...grpc.CallOption) (*GenerateAudioVODResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GenerateAudioVODResponse)
+	err := c.cc.Invoke(ctx, RunnerService_GenerateAudioVOD_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RunnerServiceServer is the server API for RunnerService service.
 // All implementations must embed UnimplementedRunnerServiceServer
 // for forward compatibility.
@@ -177,6 +190,8 @@ type RunnerServiceServer interface {
 	// Cuts parts out of one version of a recorded stream. Progress and the result are
 	// delivered like those of an upload: TranscodingProgress, VODReady and VODFailed.
 	CutVOD(context.Context, *CutVODRequest) (*CutVODResponse, error)
+	// Queues audio extraction for one completed recording source.
+	GenerateAudioVOD(context.Context, *AudioVODJob) (*GenerateAudioVODResponse, error)
 	mustEmbedUnimplementedRunnerServiceServer()
 }
 
@@ -210,6 +225,9 @@ func (UnimplementedRunnerServiceServer) RequestWaveform(context.Context, *Wavefo
 }
 func (UnimplementedRunnerServiceServer) CutVOD(context.Context, *CutVODRequest) (*CutVODResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CutVOD not implemented")
+}
+func (UnimplementedRunnerServiceServer) GenerateAudioVOD(context.Context, *AudioVODJob) (*GenerateAudioVODResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GenerateAudioVOD not implemented")
 }
 func (UnimplementedRunnerServiceServer) mustEmbedUnimplementedRunnerServiceServer() {}
 func (UnimplementedRunnerServiceServer) testEmbeddedByValue()                       {}
@@ -376,6 +394,24 @@ func _RunnerService_CutVOD_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RunnerService_GenerateAudioVOD_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AudioVODJob)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunnerServiceServer).GenerateAudioVOD(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RunnerService_GenerateAudioVOD_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunnerServiceServer).GenerateAudioVOD(ctx, req.(*AudioVODJob))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RunnerService_ServiceDesc is the grpc.ServiceDesc for RunnerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -415,14 +451,19 @@ var RunnerService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "CutVOD",
 			Handler:    _RunnerService_CutVOD_Handler,
 		},
+		{
+			MethodName: "GenerateAudioVOD",
+			Handler:    _RunnerService_GenerateAudioVOD_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "runner.proto",
 }
 
 const (
-	RunnerManagerService_Register_FullMethodName = "/protobuf.RunnerManagerService/Register"
-	RunnerManagerService_Notify_FullMethodName   = "/protobuf.RunnerManagerService/Notify"
+	RunnerManagerService_Register_FullMethodName              = "/protobuf.RunnerManagerService/Register"
+	RunnerManagerService_Notify_FullMethodName                = "/protobuf.RunnerManagerService/Notify"
+	RunnerManagerService_ResolveAudioVODSource_FullMethodName = "/protobuf.RunnerManagerService/ResolveAudioVODSource"
 )
 
 // RunnerManagerServiceClient is the client API for RunnerManagerService service.
@@ -435,6 +476,9 @@ type RunnerManagerServiceClient interface {
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
 	// Notify sends a notification to gocast
 	Notify(ctx context.Context, in *Notification, opts ...grpc.CallOption) (*NotificationResponse, error)
+	// Resolve after acquiring a processing slot so time in the queue doesn't use
+	// up the signed playlist's lifetime. A superseded job has no source.
+	ResolveAudioVODSource(ctx context.Context, in *AudioVODJob, opts ...grpc.CallOption) (*AudioVODSource, error)
 }
 
 type runnerManagerServiceClient struct {
@@ -465,6 +509,16 @@ func (c *runnerManagerServiceClient) Notify(ctx context.Context, in *Notificatio
 	return out, nil
 }
 
+func (c *runnerManagerServiceClient) ResolveAudioVODSource(ctx context.Context, in *AudioVODJob, opts ...grpc.CallOption) (*AudioVODSource, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AudioVODSource)
+	err := c.cc.Invoke(ctx, RunnerManagerService_ResolveAudioVODSource_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RunnerManagerServiceServer is the server API for RunnerManagerService service.
 // All implementations must embed UnimplementedRunnerManagerServiceServer
 // for forward compatibility.
@@ -475,6 +529,9 @@ type RunnerManagerServiceServer interface {
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
 	// Notify sends a notification to gocast
 	Notify(context.Context, *Notification) (*NotificationResponse, error)
+	// Resolve after acquiring a processing slot so time in the queue doesn't use
+	// up the signed playlist's lifetime. A superseded job has no source.
+	ResolveAudioVODSource(context.Context, *AudioVODJob) (*AudioVODSource, error)
 	mustEmbedUnimplementedRunnerManagerServiceServer()
 }
 
@@ -490,6 +547,9 @@ func (UnimplementedRunnerManagerServiceServer) Register(context.Context, *Regist
 }
 func (UnimplementedRunnerManagerServiceServer) Notify(context.Context, *Notification) (*NotificationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Notify not implemented")
+}
+func (UnimplementedRunnerManagerServiceServer) ResolveAudioVODSource(context.Context, *AudioVODJob) (*AudioVODSource, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ResolveAudioVODSource not implemented")
 }
 func (UnimplementedRunnerManagerServiceServer) mustEmbedUnimplementedRunnerManagerServiceServer() {}
 func (UnimplementedRunnerManagerServiceServer) testEmbeddedByValue()                              {}
@@ -548,6 +608,24 @@ func _RunnerManagerService_Notify_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RunnerManagerService_ResolveAudioVODSource_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AudioVODJob)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunnerManagerServiceServer).ResolveAudioVODSource(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RunnerManagerService_ResolveAudioVODSource_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunnerManagerServiceServer).ResolveAudioVODSource(ctx, req.(*AudioVODJob))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RunnerManagerService_ServiceDesc is the grpc.ServiceDesc for RunnerManagerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -562,6 +640,10 @@ var RunnerManagerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Notify",
 			Handler:    _RunnerManagerService_Notify_Handler,
+		},
+		{
+			MethodName: "ResolveAudioVODSource",
+			Handler:    _RunnerManagerService_ResolveAudioVODSource_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -37,6 +37,7 @@ type Notification struct {
 	//	*Notification_DurationProbed
 	//	*Notification_SpriteReady
 	//	*Notification_WaveformReady
+	//	*Notification_AudioVodFinished
 	Data isNotification_Data `protobuf_oneof:"data"`
 	// W3C traceparent of the runner span that produced this notification, so that the
 	// manager's handling of it joins the trace of the job. Empty when tracing is off, and
@@ -191,6 +192,15 @@ func (x *Notification) GetWaveformReady() *WaveformReadyNotification {
 	return nil
 }
 
+func (x *Notification) GetAudioVodFinished() *AudioVODFinishedNotification {
+	if x != nil {
+		if x, ok := x.Data.(*Notification_AudioVodFinished); ok {
+			return x.AudioVodFinished
+		}
+	}
+	return nil
+}
+
 func (x *Notification) GetTraceParent() string {
 	if x != nil && x.TraceParent != nil {
 		return *x.TraceParent
@@ -250,6 +260,10 @@ type Notification_WaveformReady struct {
 	WaveformReady *WaveformReadyNotification `protobuf:"bytes,13,opt,name=waveform_ready,json=waveformReady,oneof"`
 }
 
+type Notification_AudioVodFinished struct {
+	AudioVodFinished *AudioVODFinishedNotification `protobuf:"bytes,14,opt,name=audio_vod_finished,json=audioVodFinished,oneof"`
+}
+
 func (*Notification_StreamStart) isNotification_Data() {}
 
 func (*Notification_StreamEnd) isNotification_Data() {}
@@ -273,6 +287,8 @@ func (*Notification_DurationProbed) isNotification_Data() {}
 func (*Notification_SpriteReady) isNotification_Data() {}
 
 func (*Notification_WaveformReady) isNotification_Data() {}
+
+func (*Notification_AudioVodFinished) isNotification_Data() {}
 
 type StreamInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -495,8 +511,10 @@ type VODReadyNotification struct {
 	Stream        *StreamInfo            `protobuf:"bytes,1,opt,name=stream" json:"stream,omitempty"`
 	StreamVersion *StreamVersion         `protobuf:"varint,2,opt,name=stream_version,json=streamVersion,enum=protobuf.StreamVersion" json:"stream_version,omitempty"`
 	Url           *string                `protobuf:"bytes,3,opt,name=url" json:"url,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Stable across redelivery. Replacing video at the same URL has a new ID.
+	SourceRevision *string `protobuf:"bytes,4,opt,name=source_revision,json=sourceRevision" json:"source_revision,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *VODReadyNotification) Reset() {
@@ -546,6 +564,13 @@ func (x *VODReadyNotification) GetStreamVersion() StreamVersion {
 func (x *VODReadyNotification) GetUrl() string {
 	if x != nil && x.Url != nil {
 		return *x.Url
+	}
+	return ""
+}
+
+func (x *VODReadyNotification) GetSourceRevision() string {
+	if x != nil && x.SourceRevision != nil {
+		return *x.SourceRevision
 	}
 	return ""
 }
@@ -1215,7 +1240,7 @@ var File_notifications_proto protoreflect.FileDescriptor
 
 const file_notifications_proto_rawDesc = "" +
 	"\n" +
-	"\x13notifications.proto\x12\bprotobuf\x1a\rcommons.proto\"\xcf\a\n" +
+	"\x13notifications.proto\x12\bprotobuf\x1a\rcommons.proto\x1a\x0faudio_vod.proto\"\xa7\b\n" +
 	"\fNotification\x12F\n" +
 	"\fstream_start\x18\x01 \x01(\v2!.protobuf.StreamStartNotificationH\x00R\vstreamStart\x12@\n" +
 	"\n" +
@@ -1230,7 +1255,8 @@ const file_notifications_proto_rawDesc = "" +
 	"\x10silence_detected\x18\t \x01(\v2%.protobuf.SilenceDetectedNotificationH\x00R\x0fsilenceDetected\x12O\n" +
 	"\x0fduration_probed\x18\v \x01(\v2$.protobuf.DurationProbedNotificationH\x00R\x0edurationProbed\x12F\n" +
 	"\fsprite_ready\x18\f \x01(\v2!.protobuf.SpriteReadyNotificationH\x00R\vspriteReady\x12L\n" +
-	"\x0ewaveform_ready\x18\r \x01(\v2#.protobuf.WaveformReadyNotificationH\x00R\rwaveformReady\x12!\n" +
+	"\x0ewaveform_ready\x18\r \x01(\v2#.protobuf.WaveformReadyNotificationH\x00R\rwaveformReady\x12V\n" +
+	"\x12audio_vod_finished\x18\x0e \x01(\v2&.protobuf.AudioVODFinishedNotificationH\x00R\x10audioVodFinished\x12!\n" +
 	"\ftrace_parent\x18\n" +
 	" \x01(\tR\vtraceParentB\x06\n" +
 	"\x04data\"\x1c\n" +
@@ -1247,11 +1273,12 @@ const file_notifications_proto_rawDesc = "" +
 	"\x15HeartbeatNotification\x12\x1a\n" +
 	"\bhostname\x18\x01 \x01(\tR\bhostname\x12\x1a\n" +
 	"\bdraining\x18\x02 \x01(\bR\bdraining\x12\x1b\n" +
-	"\tjob_count\x18\x03 \x01(\x04R\bjobCount\"\x96\x01\n" +
+	"\tjob_count\x18\x03 \x01(\x04R\bjobCount\"\xbf\x01\n" +
 	"\x14VODReadyNotification\x12,\n" +
 	"\x06stream\x18\x01 \x01(\v2\x14.protobuf.StreamInfoR\x06stream\x12>\n" +
 	"\x0estream_version\x18\x02 \x01(\x0e2\x17.protobuf.StreamVersionR\rstreamVersion\x12\x10\n" +
-	"\x03url\x18\x03 \x01(\tR\x03url\"\xab\x01\n" +
+	"\x03url\x18\x03 \x01(\tR\x03url\x12'\n" +
+	"\x0fsource_revision\x18\x04 \x01(\tR\x0esourceRevision\"\xab\x01\n" +
 	"\x1fTranscodingProgressNotification\x12,\n" +
 	"\x06stream\x18\x01 \x01(\v2\x14.protobuf.StreamInfoR\x06stream\x12>\n" +
 	"\x0estream_version\x18\x02 \x01(\x0e2\x17.protobuf.StreamVersionR\rstreamVersion\x12\x1a\n" +
@@ -1326,7 +1353,8 @@ var file_notifications_proto_goTypes = []any{
 	(*SectionImagesReadyNotification)(nil),            // 14: protobuf.SectionImagesReadyNotification
 	(*NotificationResponse)(nil),                      // 15: protobuf.NotificationResponse
 	(*WaveformReadyNotification_VersionDuration)(nil), // 16: protobuf.WaveformReadyNotification.VersionDuration
-	(StreamVersion)(0),                                // 17: protobuf.StreamVersion
+	(*AudioVODFinishedNotification)(nil),              // 17: protobuf.AudioVODFinishedNotification
+	(StreamVersion)(0),                                // 18: protobuf.StreamVersion
 }
 var file_notifications_proto_depIdxs = []int32{
 	2,  // 0: protobuf.Notification.stream_start:type_name -> protobuf.StreamStartNotification
@@ -1341,34 +1369,35 @@ var file_notifications_proto_depIdxs = []int32{
 	8,  // 9: protobuf.Notification.duration_probed:type_name -> protobuf.DurationProbedNotification
 	12, // 10: protobuf.Notification.sprite_ready:type_name -> protobuf.SpriteReadyNotification
 	9,  // 11: protobuf.Notification.waveform_ready:type_name -> protobuf.WaveformReadyNotification
-	1,  // 12: protobuf.StreamStartNotification.stream:type_name -> protobuf.StreamInfo
-	17, // 13: protobuf.StreamStartNotification.stream_version:type_name -> protobuf.StreamVersion
-	1,  // 14: protobuf.StreamEndNotification.stream:type_name -> protobuf.StreamInfo
-	17, // 15: protobuf.StreamEndNotification.stream_version:type_name -> protobuf.StreamVersion
-	1,  // 16: protobuf.VODReadyNotification.stream:type_name -> protobuf.StreamInfo
-	17, // 17: protobuf.VODReadyNotification.stream_version:type_name -> protobuf.StreamVersion
-	1,  // 18: protobuf.TranscodingProgressNotification.stream:type_name -> protobuf.StreamInfo
-	17, // 19: protobuf.TranscodingProgressNotification.stream_version:type_name -> protobuf.StreamVersion
-	1,  // 20: protobuf.SilenceDetectedNotification.stream:type_name -> protobuf.StreamInfo
-	17, // 21: protobuf.SilenceDetectedNotification.stream_version:type_name -> protobuf.StreamVersion
-	1,  // 22: protobuf.DurationProbedNotification.stream:type_name -> protobuf.StreamInfo
-	17, // 23: protobuf.DurationProbedNotification.stream_version:type_name -> protobuf.StreamVersion
-	1,  // 24: protobuf.WaveformReadyNotification.stream:type_name -> protobuf.StreamInfo
-	16, // 25: protobuf.WaveformReadyNotification.durations:type_name -> protobuf.WaveformReadyNotification.VersionDuration
-	1,  // 26: protobuf.VODFailedNotification.stream:type_name -> protobuf.StreamInfo
-	17, // 27: protobuf.VODFailedNotification.stream_version:type_name -> protobuf.StreamVersion
-	1,  // 28: protobuf.ThumbnailReadyNotification.stream:type_name -> protobuf.StreamInfo
-	17, // 29: protobuf.ThumbnailReadyNotification.stream_version:type_name -> protobuf.StreamVersion
-	1,  // 30: protobuf.SpriteReadyNotification.stream:type_name -> protobuf.StreamInfo
-	17, // 31: protobuf.SpriteReadyNotification.stream_version:type_name -> protobuf.StreamVersion
-	1,  // 32: protobuf.SectionImagesReadyNotification.stream:type_name -> protobuf.StreamInfo
-	13, // 33: protobuf.SectionImagesReadyNotification.images:type_name -> protobuf.SectionImage
-	17, // 34: protobuf.WaveformReadyNotification.VersionDuration.stream_version:type_name -> protobuf.StreamVersion
-	35, // [35:35] is the sub-list for method output_type
-	35, // [35:35] is the sub-list for method input_type
-	35, // [35:35] is the sub-list for extension type_name
-	35, // [35:35] is the sub-list for extension extendee
-	0,  // [0:35] is the sub-list for field type_name
+	17, // 12: protobuf.Notification.audio_vod_finished:type_name -> protobuf.AudioVODFinishedNotification
+	1,  // 13: protobuf.StreamStartNotification.stream:type_name -> protobuf.StreamInfo
+	18, // 14: protobuf.StreamStartNotification.stream_version:type_name -> protobuf.StreamVersion
+	1,  // 15: protobuf.StreamEndNotification.stream:type_name -> protobuf.StreamInfo
+	18, // 16: protobuf.StreamEndNotification.stream_version:type_name -> protobuf.StreamVersion
+	1,  // 17: protobuf.VODReadyNotification.stream:type_name -> protobuf.StreamInfo
+	18, // 18: protobuf.VODReadyNotification.stream_version:type_name -> protobuf.StreamVersion
+	1,  // 19: protobuf.TranscodingProgressNotification.stream:type_name -> protobuf.StreamInfo
+	18, // 20: protobuf.TranscodingProgressNotification.stream_version:type_name -> protobuf.StreamVersion
+	1,  // 21: protobuf.SilenceDetectedNotification.stream:type_name -> protobuf.StreamInfo
+	18, // 22: protobuf.SilenceDetectedNotification.stream_version:type_name -> protobuf.StreamVersion
+	1,  // 23: protobuf.DurationProbedNotification.stream:type_name -> protobuf.StreamInfo
+	18, // 24: protobuf.DurationProbedNotification.stream_version:type_name -> protobuf.StreamVersion
+	1,  // 25: protobuf.WaveformReadyNotification.stream:type_name -> protobuf.StreamInfo
+	16, // 26: protobuf.WaveformReadyNotification.durations:type_name -> protobuf.WaveformReadyNotification.VersionDuration
+	1,  // 27: protobuf.VODFailedNotification.stream:type_name -> protobuf.StreamInfo
+	18, // 28: protobuf.VODFailedNotification.stream_version:type_name -> protobuf.StreamVersion
+	1,  // 29: protobuf.ThumbnailReadyNotification.stream:type_name -> protobuf.StreamInfo
+	18, // 30: protobuf.ThumbnailReadyNotification.stream_version:type_name -> protobuf.StreamVersion
+	1,  // 31: protobuf.SpriteReadyNotification.stream:type_name -> protobuf.StreamInfo
+	18, // 32: protobuf.SpriteReadyNotification.stream_version:type_name -> protobuf.StreamVersion
+	1,  // 33: protobuf.SectionImagesReadyNotification.stream:type_name -> protobuf.StreamInfo
+	13, // 34: protobuf.SectionImagesReadyNotification.images:type_name -> protobuf.SectionImage
+	18, // 35: protobuf.WaveformReadyNotification.VersionDuration.stream_version:type_name -> protobuf.StreamVersion
+	36, // [36:36] is the sub-list for method output_type
+	36, // [36:36] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_notifications_proto_init() }
@@ -1377,6 +1406,7 @@ func file_notifications_proto_init() {
 		return
 	}
 	file_commons_proto_init()
+	file_audio_vod_proto_init()
 	file_notifications_proto_msgTypes[0].OneofWrappers = []any{
 		(*Notification_StreamStart)(nil),
 		(*Notification_StreamEnd)(nil),
@@ -1390,6 +1420,7 @@ func file_notifications_proto_init() {
 		(*Notification_DurationProbed)(nil),
 		(*Notification_SpriteReady)(nil),
 		(*Notification_WaveformReady)(nil),
+		(*Notification_AudioVodFinished)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
