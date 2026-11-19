@@ -115,12 +115,15 @@ func TestConvertAudioVODFailure(t *testing.T) {
 		})
 		audioDir := filepath.Join(t.TempDir(), "audio")
 		writePreviousAudio(t, audioDir)
-		created, err := convertAudioVOD(audioTestContext(t), url+"/playlist.m3u8", audioDir)
+		created, err := convertAudioVOD(audioTestContext(t), url+"/playlist.m3u8?jwt=test-credential", audioDir)
 		if err == nil || created {
 			t.Fatalf("convertAudioVOD = (%v, %v), want (false, error)", created, err)
 		}
 		if !strings.HasPrefix(err.Error(), "convert audio VOD:") {
 			t.Fatalf("input failed before reaching conversion: %v", err)
+		}
+		if strings.Contains(err.Error(), "test-credential") {
+			t.Fatal("the conversion error included the signed URL")
 		}
 		assertPreviousAudio(t, audioDir)
 		assertNoLeftovers(t, filepath.Dir(audioDir), filepath.Base(audioDir))

@@ -87,3 +87,18 @@ func TestRequestWaveformRejectsInvalidRequests(t *testing.T) {
 		}
 	}
 }
+
+func TestGenerateAudioVODRejectsInvalidRequests(t *testing.T) {
+	id, generation := ptr.Take(uint64(7)), ptr.Take("first")
+	version := protobuf.StreamVersion_STREAM_VERSION_COMBINED.Enum()
+	for _, job := range []*protobuf.AudioVODJob{
+		{Version: version, Generation: generation},
+		{StreamId: id, Version: version},
+		{StreamId: id, Generation: generation},
+		{StreamId: id, Version: protobuf.StreamVersion(99).Enum(), Generation: generation},
+	} {
+		if _, err := (&Runner{}).GenerateAudioVOD(t.Context(), job); status.Code(err) != codes.InvalidArgument {
+			t.Errorf("GenerateAudioVOD(%v) = %v, want InvalidArgument", job, err)
+		}
+	}
+}

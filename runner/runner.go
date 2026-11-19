@@ -449,6 +449,7 @@ func isCritical(n *protobuf.Notification) bool {
 	case *protobuf.Notification_StreamEnd,
 		*protobuf.Notification_StreamStart,
 		*protobuf.Notification_VodReady,
+		*protobuf.Notification_AudioVodFinished,
 		*protobuf.Notification_ThumbnailReady,
 		*protobuf.Notification_SectionImagesReady,
 		*protobuf.Notification_SilenceDetected,
