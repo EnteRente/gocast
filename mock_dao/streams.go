@@ -57,6 +57,20 @@ func (mr *MockStreamsDaoMockRecorder) AddVodView(id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddVodView", reflect.TypeOf((*MockStreamsDao)(nil).AddVodView), id)
 }
 
+// BeginAudioVOD mocks base method.
+func (m *MockStreamsDao) BeginAudioVOD(ctx context.Context, job model.AudioJob) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BeginAudioVOD", ctx, job)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BeginAudioVOD indicates an expected call of BeginAudioVOD.
+func (mr *MockStreamsDaoMockRecorder) BeginAudioVOD(ctx, job any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BeginAudioVOD", reflect.TypeOf((*MockStreamsDao)(nil).BeginAudioVOD), ctx, job)
+}
+
 // ClearRunnerJobForStream mocks base method.
 func (m *MockStreamsDao) ClearRunnerJobForStream(streamID uint, version model.StreamVersion) error {
 	m.ctrl.T.Helper()
@@ -233,6 +247,20 @@ func (m *MockStreamsDao) ExecAllStreamsWithCoursesAndSubtitlesBatched(f func([]d
 func (mr *MockStreamsDaoMockRecorder) ExecAllStreamsWithCoursesAndSubtitlesBatched(f any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecAllStreamsWithCoursesAndSubtitlesBatched", reflect.TypeOf((*MockStreamsDao)(nil).ExecAllStreamsWithCoursesAndSubtitlesBatched), f)
+}
+
+// FinishAudioVOD mocks base method.
+func (m *MockStreamsDao) FinishAudioVOD(ctx context.Context, job model.AudioJob, state model.AudioState, playlistURL string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FinishAudioVOD", ctx, job, state, playlistURL)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// FinishAudioVOD indicates an expected call of FinishAudioVOD.
+func (mr *MockStreamsDaoMockRecorder) FinishAudioVOD(ctx, job, state, playlistURL any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinishAudioVOD", reflect.TypeOf((*MockStreamsDao)(nil).FinishAudioVOD), ctx, job, state, playlistURL)
 }
 
 // GetAllStreams mocks base method.
@@ -459,6 +487,21 @@ func (mr *MockStreamsDaoMockRecorder) RemoveTranscodingProgress(streamVersion, s
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveTranscodingProgress", reflect.TypeOf((*MockStreamsDao)(nil).RemoveTranscodingProgress), streamVersion, streamId)
 }
 
+// ResolveAudioVOD mocks base method.
+func (m *MockStreamsDao) ResolveAudioVOD(ctx context.Context, job model.AudioJob) (dao.AudioSource, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResolveAudioVOD", ctx, job)
+	ret0, _ := ret[0].(dao.AudioSource)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ResolveAudioVOD indicates an expected call of ResolveAudioVOD.
+func (mr *MockStreamsDaoMockRecorder) ResolveAudioVOD(ctx, job any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveAudioVOD", reflect.TypeOf((*MockStreamsDao)(nil).ResolveAudioVOD), ctx, job)
+}
+
 // SaveCAMURL mocks base method.
 func (m *MockStreamsDao) SaveCAMURL(stream *model.Stream, url string) {
 	m.ctrl.T.Helper()
@@ -549,6 +592,20 @@ func (m *MockStreamsDao) SaveTranscodingProgress(progress model.TranscodingProgr
 func (mr *MockStreamsDaoMockRecorder) SaveTranscodingProgress(progress any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveTranscodingProgress", reflect.TypeOf((*MockStreamsDao)(nil).SaveTranscodingProgress), progress)
+}
+
+// SaveVODSource mocks base method.
+func (m *MockStreamsDao) SaveVODSource(ctx context.Context, streamID uint, version model.StreamVersion, playlistURL, revision string, privateByDefault bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveVODSource", ctx, streamID, version, playlistURL, revision, privateByDefault)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SaveVODSource indicates an expected call of SaveVODSource.
+func (mr *MockStreamsDaoMockRecorder) SaveVODSource(ctx, streamID, version, playlistURL, revision, privateByDefault any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveVODSource", reflect.TypeOf((*MockStreamsDao)(nil).SaveVODSource), ctx, streamID, version, playlistURL, revision, privateByDefault)
 }
 
 // SetDuration mocks base method.
