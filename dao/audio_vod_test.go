@@ -137,3 +137,24 @@ func TestAudioVODReplacementAndDeletion(t *testing.T) {
 	_, err = d.ResolveAudioVOD(ctx, slides)
 	require.ErrorIs(t, err, gorm.ErrRecordNotFound)
 }
+
+func TestSaveVODSourceKeepsStreamVisibility(t *testing.T) {
+	d, streams := audioTestDAO(t)
+	for _, tc := range []struct {
+		name            string
+		stream          audioTestStream
+		courseIsPrivate bool
+	}{
+		{"already private before the first recording", audioTestStream{Private: true}, false},
+		{"already public when another version arrives", audioTestStream{Recording: true}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.NoError(t, streams.Create(&tc.stream).Error)
+			require.NoError(t, d.SaveVODSource(t.Context(), tc.stream.ID, model.COMB, "video", "v1", tc.courseIsPrivate))
+			var saved audioTestStream
+			require.NoError(t, streams.First(&saved, tc.stream.ID).Error)
+			require.Equal(t, tc.stream.Private, saved.Private)
+			require.True(t, saved.Recording)
+		})
+	}
+}

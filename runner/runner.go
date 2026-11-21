@@ -323,6 +323,10 @@ func (r *Runner) RunActionContext(parent context.Context, a, vod []actions.Actio
 		for {
 			select {
 			case n := <-notify:
+				if vod := n.GetVodReady(); vod != nil {
+					// Re-uploads reuse the playlist URL. The job ID changes only for a new job.
+					vod.SourceRevision = ptr.Take(job)
+				}
 				if traceParent != "" {
 					n.TraceParent = ptr.Take(traceParent)
 				}

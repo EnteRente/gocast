@@ -119,11 +119,14 @@ func TestRequestUpload_NoRunner(t *testing.T) {
 }
 
 func TestHandleVODReady(t *testing.T) {
+	const playlist = "http://edge/vod/5/x/playlist.m3u8"
+	const revision = "decdc544-ea52-4791-a864-774159f88db2"
 	notification := func(v protobuf.StreamVersion) *protobuf.VODReadyNotification {
 		return &protobuf.VODReadyNotification{
-			Stream:        &protobuf.StreamInfo{Id: ptr.Take(uint64(5))},
-			StreamVersion: ptr.Take(v),
-			Url:           ptr.Take("http://edge/vod/5/x/playlist.m3u8"),
+			Stream:         &protobuf.StreamInfo{Id: ptr.Take(uint64(5))},
+			StreamVersion:  ptr.Take(v),
+			Url:            ptr.Take(playlist),
+			SourceRevision: ptr.Take(revision),
 		}
 	}
 
@@ -133,35 +136,29 @@ func TestHandleVODReady(t *testing.T) {
 		streamsDao.EXPECT().GetStreamByID(gomock.Any(), "5").Return(model.Stream{Model: gorm.Model{ID: 5}, CourseID: 3}, nil)
 		coursesDao := mock_dao.NewMockCoursesDao(ctrl)
 		coursesDao.EXPECT().GetCourseById(gomock.Any(), uint(3)).Return(model.Course{VodPrivate: true}, nil)
-		var saved model.Stream
-		streamsDao.EXPECT().SaveStream(gomock.Any()).DoAndReturn(func(s *model.Stream) error { saved = *s; return nil })
-		streamsDao.EXPECT().RemoveTranscodingProgress(gomock.Any(), uint(5)).Return(nil)
+		streamsDao.EXPECT().SaveVODSource(gomock.Any(), uint(5), model.CAM, playlist, revision, true).Return(nil)
+		streamsDao.EXPECT().RemoveTranscodingProgress(model.CAM, uint(5)).Return(nil)
 
 		m := New(withoutCut(ctrl, dao.DaoWrapper{StreamsDao: streamsDao, CoursesDao: coursesDao}))
 		if _, err := m.handleVODReady(context.Background(), notification(protobuf.StreamVersion_STREAM_VERSION_CAMERA)); err != nil {
 			t.Fatal(err)
 		}
-		if !saved.Recording || !saved.Private || saved.PlaylistUrlCAM == "" {
-			t.Errorf("saved = %+v", saved)
-		}
 	})
 
-	t.Run("a stream made private beforehand stays private", func(t *testing.T) {
+	t.Run("older runners omit the source revision", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		streamsDao := mock_dao.NewMockStreamsDao(ctrl)
 		streamsDao.EXPECT().GetStreamByID(gomock.Any(), "5").Return(model.Stream{Model: gorm.Model{ID: 5}, CourseID: 3, Private: true}, nil)
 		coursesDao := mock_dao.NewMockCoursesDao(ctrl)
 		coursesDao.EXPECT().GetCourseById(gomock.Any(), uint(3)).Return(model.Course{VodPrivate: false}, nil)
-		var saved model.Stream
-		streamsDao.EXPECT().SaveStream(gomock.Any()).DoAndReturn(func(s *model.Stream) error { saved = *s; return nil })
-		streamsDao.EXPECT().RemoveTranscodingProgress(gomock.Any(), uint(5)).Return(nil)
+		streamsDao.EXPECT().SaveVODSource(gomock.Any(), uint(5), model.COMB, playlist, "", false).Return(nil)
+		streamsDao.EXPECT().RemoveTranscodingProgress(model.COMB, uint(5)).Return(nil)
 
 		m := New(withoutCut(ctrl, dao.DaoWrapper{StreamsDao: streamsDao, CoursesDao: coursesDao}))
-		if _, err := m.handleVODReady(context.Background(), notification(protobuf.StreamVersion_STREAM_VERSION_COMBINED)); err != nil {
+		n := notification(protobuf.StreamVersion_STREAM_VERSION_COMBINED)
+		n.SourceRevision = nil
+		if _, err := m.handleVODReady(context.Background(), n); err != nil {
 			t.Fatal(err)
-		}
-		if !saved.Private {
-			t.Error("the stream became public")
 		}
 	})
 
@@ -169,17 +166,13 @@ func TestHandleVODReady(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		streamsDao := mock_dao.NewMockStreamsDao(ctrl)
 		streamsDao.EXPECT().GetStreamByID(gomock.Any(), "5").Return(model.Stream{Model: gorm.Model{ID: 5}, Recording: true}, nil)
-		var saved model.Stream
-		streamsDao.EXPECT().SaveStream(gomock.Any()).DoAndReturn(func(s *model.Stream) error { saved = *s; return nil })
-		streamsDao.EXPECT().RemoveTranscodingProgress(gomock.Any(), uint(5)).Return(nil)
+		streamsDao.EXPECT().SaveVODSource(gomock.Any(), uint(5), model.COMB, playlist, revision, false).Return(nil)
+		streamsDao.EXPECT().RemoveTranscodingProgress(model.COMB, uint(5)).Return(nil)
 
 		// no CoursesDao: asking the course would be a mistake here
 		m := New(withoutCut(ctrl, dao.DaoWrapper{StreamsDao: streamsDao}))
 		if _, err := m.handleVODReady(context.Background(), notification(protobuf.StreamVersion_STREAM_VERSION_COMBINED)); err != nil {
 			t.Fatal(err)
-		}
-		if saved.Private || saved.PlaylistUrl == "" {
-			t.Errorf("saved = %+v", saved)
 		}
 	})
 
@@ -193,6 +186,25 @@ func TestHandleVODReady(t *testing.T) {
 			t.Errorf("handleVODReady = %v, want nil so the runner stops retrying", err)
 		}
 	})
+
+	t.Run("deletion between lookup and save is acknowledged", func(t *testing.T) {
+		streamsDao := mock_dao.NewMockStreamsDao(gomock.NewController(t))
+		streamsDao.EXPECT().GetStreamByID(gomock.Any(), "5").Return(model.Stream{Model: gorm.Model{ID: 5}, Recording: true}, nil)
+		streamsDao.EXPECT().SaveVODSource(gomock.Any(), uint(5), model.CAM, playlist, revision, false).Return(gorm.ErrRecordNotFound)
+		m := New(dao.DaoWrapper{StreamsDao: streamsDao})
+		if _, err := m.handleVODReady(t.Context(), notification(protobuf.StreamVersion_STREAM_VERSION_CAMERA)); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("unknown version cannot replace the combined VOD", func(t *testing.T) {
+		streamsDao := mock_dao.NewMockStreamsDao(gomock.NewController(t))
+		streamsDao.EXPECT().GetStreamByID(gomock.Any(), "5").Return(model.Stream{Model: gorm.Model{ID: 5}, Recording: true}, nil)
+		m := New(dao.DaoWrapper{StreamsDao: streamsDao})
+		if _, err := m.handleVODReady(t.Context(), notification(protobuf.StreamVersion(55))); status.Code(err) != codes.InvalidArgument {
+			t.Errorf("handleVODReady = %v, want InvalidArgument", err)
+		}
+	})
 }
 
 // TestHandleVODReadyEndsTheConversion checks that the card stops showing the version
@@ -201,14 +213,15 @@ func TestHandleVODReadyEndsTheConversion(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	streamsDao := mock_dao.NewMockStreamsDao(ctrl)
 	streamsDao.EXPECT().GetStreamByID(gomock.Any(), "5").Return(model.Stream{Model: gorm.Model{ID: 5}, Recording: true}, nil)
-	streamsDao.EXPECT().SaveStream(gomock.Any()).Return(nil)
+	const playlist = "http://edge/vod/5/x/playlist.m3u8"
+	streamsDao.EXPECT().SaveVODSource(gomock.Any(), uint(5), model.PRES, playlist, "", false).Return(nil)
 	streamsDao.EXPECT().RemoveTranscodingProgress(model.PRES, uint(5)).Return(nil)
 
 	m := New(withoutCut(ctrl, dao.DaoWrapper{StreamsDao: streamsDao}))
 	_, err := m.handleVODReady(context.Background(), &protobuf.VODReadyNotification{
 		Stream:        &protobuf.StreamInfo{Id: ptr.Take(uint64(5))},
 		StreamVersion: ptr.Take(protobuf.StreamVersion_STREAM_VERSION_PRESENTATION),
-		Url:           ptr.Take("http://edge/vod/5/x/playlist.m3u8"),
+		Url:           ptr.Take(playlist),
 	})
 	if err != nil {
 		t.Fatal(err)

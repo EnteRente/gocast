@@ -85,6 +85,7 @@ func TestNotifyJoinsTheTrace(t *testing.T) {
 		n := &protobuf.Notification{Data: &protobuf.Notification_VodReady{VodReady: &protobuf.VODReadyNotification{
 			Stream:        &protobuf.StreamInfo{Id: ptr.Take(uint64(5))},
 			StreamVersion: ptr.Take(protobuf.StreamVersion_STREAM_VERSION_COMBINED),
+			Url:           ptr.Take("http://edge/vod/5/combined/playlist.m3u8"),
 		}}}
 		if traceparent != "" {
 			n.TraceParent = ptr.Take(traceparent)
@@ -98,7 +99,9 @@ func TestNotifyJoinsTheTrace(t *testing.T) {
 		streamsDao := mock_dao.NewMockStreamsDao(ctrl)
 		streamsDao.EXPECT().GetStreamByID(gomock.Any(), "5").Return(model.Stream{}, gorm.ErrRecordNotFound).AnyTimes()
 		m := New(dao.DaoWrapper{StreamsDao: streamsDao})
-		_, _ = m.Notify(context.Background(), n)
+		if _, err := m.Notify(context.Background(), n); err != nil {
+			t.Fatal(err)
+		}
 		return spans
 	}
 
