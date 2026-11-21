@@ -744,8 +744,8 @@ func (m *Manager) handleVODReady(ctx context.Context, notification *protobuf.VOD
 		privateByDefault = course.VodPrivate
 	}
 	err = m.dao.StreamsDao.SaveVODSource(ctx, stream.ID, version, playlistURL, notification.GetSourceRevision(), privateByDefault)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return &protobuf.NotificationResponse{}, nil // deleted after the lookup
+	if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, dao.ErrRetiredVODRevision) {
+		return &protobuf.NotificationResponse{}, nil
 	}
 	if err != nil {
 		return nil, err

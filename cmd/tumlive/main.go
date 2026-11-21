@@ -157,6 +157,7 @@ func run(ctx context.Context) error {
 		&model.Bookmark{},
 		&model.TranscodingProgress{},
 		&model.AudioRendition{},
+		&model.RetiredVODRevision{},
 		&model.LectureCut{},
 		&model.ChatReaction{},
 		&model.Subtitles{},

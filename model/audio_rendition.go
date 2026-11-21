@@ -27,3 +27,10 @@ type AudioRendition struct {
 	// The last successful output stays playable while the same video is retried.
 	PlaylistURL string `gorm:"type:text"`
 }
+
+// RetiredVODRevision identifies a VODReady that a runner may still retry after replacement.
+type RetiredVODRevision struct {
+	StreamID uint          `gorm:"primaryKey;autoIncrement:false"`
+	Version  StreamVersion `gorm:"primaryKey;size:4"`
+	Revision string        `gorm:"primaryKey;size:36"`
+}

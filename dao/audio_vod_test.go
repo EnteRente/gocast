@@ -24,8 +24,7 @@ type audioTestStream struct {
 	Recording, LiveNow, Private                  bool
 }
 
-// TEST_MYSQL_DSN also exercises the row locks on MariaDB. Only the two
-// uniquely prefixed test tables are created in that database.
+// TEST_MYSQL_DSN also exercises the row locks on MariaDB using uniquely prefixed tables.
 func audioTestDAO(t *testing.T) (streamsDao, *gorm.DB) {
 	t.Helper()
 	var dialect gorm.Dialector = sqlite.Open(filepath.Join(t.TempDir(), "audio.db"))
@@ -44,11 +43,13 @@ func audioTestDAO(t *testing.T) (streamsDao, *gorm.DB) {
 	if dsn == "" {
 		sqlDB.SetMaxOpenConns(1) // SQLite serializes writers.
 	} else {
-		t.Cleanup(func() { require.NoError(t, db.Migrator().DropTable(&model.AudioRendition{}, table)) })
+		t.Cleanup(func() {
+			require.NoError(t, db.Migrator().DropTable(&model.RetiredVODRevision{}, &model.AudioRendition{}, table))
+		})
 	}
 	streams := db.Table(table).Session(&gorm.Session{})
 	require.NoError(t, streams.AutoMigrate(&audioTestStream{}))
-	require.NoError(t, db.AutoMigrate(&model.AudioRendition{}))
+	require.NoError(t, db.AutoMigrate(&model.AudioRendition{}, &model.RetiredVODRevision{}))
 	return streamsDao{db: db}, streams
 }
 
@@ -155,6 +156,50 @@ func TestSaveVODSourceKeepsStreamVisibility(t *testing.T) {
 			require.NoError(t, streams.First(&saved, tc.stream.ID).Error)
 			require.Equal(t, tc.stream.Private, saved.Private)
 			require.True(t, saved.Recording)
+		})
+	}
+}
+
+func TestSaveVODSourceIgnoresSupersededRetry(t *testing.T) {
+	const original = "edge/camera/playlist.m3u8"
+	for _, tc := range []struct {
+		name          string
+		publisher     uint
+		playlist      string
+		finalRevision string
+	}{
+		{"same playlist", 1, original, "third"},
+		{"moved playlist", 1, "edge/new/playlist.m3u8", "third"},
+		{"shared playlist replaced by a copy", 2, original, "third"},
+		{"replacement from an older runner", 1, original, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			d, streams := audioTestDAO(t)
+			ctx := t.Context()
+			require.NoError(t, streams.Create(&[]audioTestStream{
+				{Model: gorm.Model{ID: 1}},
+				{Model: gorm.Model{ID: 2}, Recording: true, PlaylistUrlCAM: original},
+			}).Error)
+			require.NoError(t, d.SaveVODSource(ctx, 1, model.CAM, original, "first", false))
+			require.NoError(t, d.SaveVODSource(ctx, tc.publisher, model.CAM, tc.playlist, "second", false))
+			require.NoError(t, d.SaveVODSource(ctx, tc.publisher, model.CAM, tc.playlist, tc.finalRevision, false))
+			job := model.AudioJob{StreamID: 1, Version: model.CAM, Generation: "current"}
+			require.NoError(t, d.BeginAudioVOD(ctx, job))
+			require.NoError(t, d.FinishAudioVOD(ctx, job, model.AudioReady, "current audio"))
+			job.Generation = "queued"
+			require.NoError(t, d.BeginAudioVOD(ctx, job))
+			if tc.finalRevision != "" {
+				require.NoError(t, d.SaveVODSource(ctx, tc.publisher, model.CAM, tc.playlist, tc.finalRevision, false))
+			}
+
+			err := d.SaveVODSource(ctx, 1, model.CAM, original, "first", false)
+			var current model.AudioRendition
+			require.NoError(t, d.db.First(&current, "stream_id = ? AND version = ?", 1, model.CAM).Error)
+			require.Equal(t, "current audio", current.PlaylistURL)
+			source, resolveErr := d.ResolveAudioVOD(ctx, job)
+			require.NoError(t, resolveErr)
+			require.Equal(t, tc.playlist, source.PlaylistURL)
+			require.ErrorIs(t, err, ErrRetiredVODRevision)
 		})
 	}
 }

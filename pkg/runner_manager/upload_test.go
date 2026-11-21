@@ -187,15 +187,20 @@ func TestHandleVODReady(t *testing.T) {
 		}
 	})
 
-	t.Run("deletion between lookup and save is acknowledged", func(t *testing.T) {
-		streamsDao := mock_dao.NewMockStreamsDao(gomock.NewController(t))
-		streamsDao.EXPECT().GetStreamByID(gomock.Any(), "5").Return(model.Stream{Model: gorm.Model{ID: 5}, Recording: true}, nil)
-		streamsDao.EXPECT().SaveVODSource(gomock.Any(), uint(5), model.CAM, playlist, revision, false).Return(gorm.ErrRecordNotFound)
-		m := New(dao.DaoWrapper{StreamsDao: streamsDao})
-		if _, err := m.handleVODReady(t.Context(), notification(protobuf.StreamVersion_STREAM_VERSION_CAMERA)); err != nil {
-			t.Fatal(err)
-		}
-	})
+	for name, cause := range map[string]error{
+		"deletion between lookup and save is acknowledged":             gorm.ErrRecordNotFound,
+		"a retired revision is acknowledged before video finalization": dao.ErrRetiredVODRevision,
+	} {
+		t.Run(name, func(t *testing.T) {
+			streamsDao := mock_dao.NewMockStreamsDao(gomock.NewController(t))
+			streamsDao.EXPECT().GetStreamByID(gomock.Any(), "5").Return(model.Stream{Model: gorm.Model{ID: 5}, Recording: true}, nil)
+			streamsDao.EXPECT().SaveVODSource(gomock.Any(), uint(5), model.CAM, playlist, revision, false).Return(cause)
+			m := New(dao.DaoWrapper{StreamsDao: streamsDao})
+			if resp, err := m.handleVODReady(t.Context(), notification(protobuf.StreamVersion_STREAM_VERSION_CAMERA)); err != nil || resp == nil {
+				t.Fatalf("handleVODReady returned (%v, %v), want acknowledgement", resp, err)
+			}
+		})
+	}
 
 	t.Run("unknown version cannot replace the combined VOD", func(t *testing.T) {
 		streamsDao := mock_dao.NewMockStreamsDao(gomock.NewController(t))

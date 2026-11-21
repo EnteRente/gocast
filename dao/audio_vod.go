@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -16,6 +17,9 @@ import (
 var vodPlaylistColumn = map[model.StreamVersion]string{
 	model.COMB: "playlist_url", model.CAM: "playlist_url_cam", model.PRES: "playlist_url_pres",
 }
+
+// ErrRetiredVODRevision tells the manager to acknowledge a superseded upload without finalizing it.
+var ErrRetiredVODRevision = errors.New("VOD revision has been replaced")
 
 // AudioSource is the stored video that the manager signs for this job.
 type AudioSource struct {
@@ -125,21 +129,35 @@ func (d streamsDao) SaveVODSource(ctx context.Context, id uint, version model.St
 		return errors.New("invalid VOD source")
 	}
 	defer Cache.Clear()
+	// A copy can finish audio after the revision check. MariaDB must lock its
+	// latest row when retiring it, even if the check saw an earlier snapshot.
 	return d.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var stream model.Stream
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Select("id", "recording").First(&stream, id).Error; err != nil {
 			return err
+		}
+		key := audioSourceKey(playlistURL)
+		// A copied lecture can replace this rendition without locking this stream.
+		current, err := lockRendition(tx, id, version, key)
+		if err != nil {
+			return err
+		}
+		if revision != "" {
+			var retired int64
+			if err := tx.Model(&model.RetiredVODRevision{}).
+				Where("stream_id = ? AND version = ? AND revision = ?", id, version, revision).
+				Count(&retired).Error; err != nil {
+				return err
+			}
+			if retired != 0 {
+				return ErrRetiredVODRevision
+			}
 		}
 		changes := map[string]any{col: playlistURL, "recording": true}
 		if !stream.Recording && privateByDefault {
 			changes["private"] = true
 		}
 		if err := tx.Model(&stream).Updates(changes).Error; err != nil {
-			return err
-		}
-		key := audioSourceKey(playlistURL)
-		current, err := lockRendition(tx, id, version, key)
-		if err != nil {
 			return err
 		}
 		if !bytes.Equal(current.SourceKey, key) {
@@ -151,7 +169,22 @@ func (d streamsDao) SaveVODSource(ctx context.Context, id uint, version model.St
 		}
 		// Copies still pointing to the overwritten file also lost their audio.
 		// Copies pointing to the old URL of a moved source still have their video.
+		if err := retireVODRevisions(tx, key, revision); err != nil {
+			return err
+		}
 		return tx.Model(&model.AudioRendition{}).Where("source_key = ?", key).
 			Updates(map[string]any{"generation": "", "state": "", "playlist_url": "", "source_revision": revision}).Error
-	})
+	}, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+}
+
+func retireVODRevisions(tx *gorm.DB, key []byte, replacement string) error {
+	var retired []model.RetiredVODRevision
+	err := tx.Model(&model.AudioRendition{}).Clauses(clause.Locking{Strength: "UPDATE"}).
+		Select("stream_id, version, source_revision AS revision").
+		Where("source_key = ? AND source_revision <> '' AND source_revision <> ?", key, replacement).
+		Find(&retired).Error
+	if err != nil || len(retired) == 0 {
+		return err
+	}
+	return tx.Clauses(clause.OnConflict{DoNothing: true}).CreateInBatches(&retired, 100).Error
 }
