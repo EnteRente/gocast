@@ -21,6 +21,7 @@ import (
 
 	protobuf "github.com/TUM-Dev/gocast/apiv2/protobuf/server"
 	"github.com/TUM-Dev/gocast/dao"
+	"github.com/TUM-Dev/gocast/model"
 	"github.com/TUM-Dev/gocast/pkg/realtimehub"
 	"github.com/TUM-Dev/gocast/tools"
 	"github.com/TUM-Dev/gocast/tools/bot"
@@ -48,7 +49,8 @@ type API struct {
 	sectionImages SectionImages
 	// Regenerating a VOD's own large thumbnail, as opposed to a section's; see
 	// WithPostProcessing. Optional: nil means RedoCoursePostProcessing answers 503.
-	postProcessing PostProcessing
+	postProcessing  PostProcessing
+	requestAudioVOD func(context.Context, uint, model.StreamVersion) error
 	// Where an uploaded recording is converted; see WithUploads. Optional: nil means
 	// uploading a lecture's media answers 503.
 	uploads Uploads

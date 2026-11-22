@@ -282,6 +282,9 @@ var services = []service{
 			"deleteMaintenanceEmailFailure":       requires(model.PermAdministerServer),
 			"reapDeletedMedia":                    requires(model.PermAdministerServer),
 
+			// Archive conversions use the runner pool shared by all courses.
+			"generateAudioVOD": requires(model.PermAdministerServer),
+
 			// Course import reaches TUMonline directly and creates courses outright;
 			// server-wide, same as runners and info pages.
 			"searchCourseImportSchedule": requires(model.PermAdministerServer),

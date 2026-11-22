@@ -315,6 +315,7 @@ func serveHttp(ctx context.Context, manager *runner_manager.Manager, camService 
 		apiv2.WithVODStorage(tools.Cfg.Paths.Vod),
 		apiv2.WithSectionImages(sectionimages.SectionImages{Manager: manager}),
 		apiv2.WithPostProcessing(postprocessing.PostProcessing{Manager: manager}),
+		apiv2.WithAudioVODGenerator(manager.RequestAudioVOD),
 		apiv2.WithUploads(uploads.Uploads{Manager: manager}),
 		apiv2.WithCutting(cutting.Cutting{Manager: manager}),
 		apiv2.WithRealtimeHub(hub),
