@@ -25,10 +25,13 @@ const (
 // A generation belongs to one request for one recording source. A replacement
 // invalidates it even when the new video has the same playlist URL.
 type AudioVODJob struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StreamId      *uint64                `protobuf:"varint,1,opt,name=stream_id,json=streamId" json:"stream_id,omitempty"`
-	Version       *StreamVersion         `protobuf:"varint,2,opt,name=version,enum=protobuf.StreamVersion" json:"version,omitempty"`
-	Generation    *string                `protobuf:"bytes,3,opt,name=generation" json:"generation,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	StreamId   *uint64                `protobuf:"varint,1,opt,name=stream_id,json=streamId" json:"stream_id,omitempty"`
+	Version    *StreamVersion         `protobuf:"varint,2,opt,name=version,enum=protobuf.StreamVersion" json:"version,omitempty"`
+	Generation *string                `protobuf:"bytes,3,opt,name=generation" json:"generation,omitempty"`
+	// Supplied only by a runner resolving the source. Its public edge can
+	// differ from the archive in the manager's vodURLTemplate.
+	EdgeServer    *string `protobuf:"bytes,4,opt,name=edge_server,json=edgeServer" json:"edge_server,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -80,6 +83,13 @@ func (x *AudioVODJob) GetVersion() StreamVersion {
 func (x *AudioVODJob) GetGeneration() string {
 	if x != nil && x.Generation != nil {
 		return *x.Generation
+	}
+	return ""
+}
+
+func (x *AudioVODJob) GetEdgeServer() string {
+	if x != nil && x.EdgeServer != nil {
+		return *x.EdgeServer
 	}
 	return ""
 }
@@ -282,13 +292,15 @@ var File_audio_vod_proto protoreflect.FileDescriptor
 
 const file_audio_vod_proto_rawDesc = "" +
 	"\n" +
-	"\x0faudio_vod.proto\x12\bprotobuf\x1a\rcommons.proto\x1a\x1bgoogle/protobuf/empty.proto\"}\n" +
+	"\x0faudio_vod.proto\x12\bprotobuf\x1a\rcommons.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x9e\x01\n" +
 	"\vAudioVODJob\x12\x1b\n" +
 	"\tstream_id\x18\x01 \x01(\x04R\bstreamId\x121\n" +
 	"\aversion\x18\x02 \x01(\x0e2\x17.protobuf.StreamVersionR\aversion\x12\x1e\n" +
 	"\n" +
 	"generation\x18\x03 \x01(\tR\n" +
-	"generation\"1\n" +
+	"generation\x12\x1f\n" +
+	"\vedge_server\x18\x04 \x01(\tR\n" +
+	"edgeServer\"1\n" +
 	"\x18GenerateAudioVODResponse\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"3\n" +
 	"\x0eAudioVODSource\x12!\n" +

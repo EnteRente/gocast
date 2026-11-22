@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -23,6 +24,16 @@ type JWTPlaylistClaims struct {
 	// allowed, since nothing else reads it; also empty for tokens issued before it
 	// existed, where the edge falls back to the stream id.
 	FileName string `json:",omitempty"`
+}
+
+// Sign issues the same seven-hour playback credential for viewers and post-processing jobs.
+func (claims *JWTPlaylistClaims) Sign() (string, error) {
+	key := Cfg.GetJWTKey()
+	if key == nil {
+		return "", errors.New("playlist signing key is unavailable")
+	}
+	claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(7 * time.Hour))
+	return jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(key)
 }
 
 var unsafeFileNameChars = regexp.MustCompile(`[^\p{L}\p{N}._-]+`)
@@ -89,17 +100,12 @@ func SetSignedPlaylistsForCourse(s *model.Stream, user *model.User, courseSlug s
 			continue
 		}
 
-		t := jwt.New(jwt.GetSigningMethod("RS256"))
-
 		var userid uint
 		userid = 0
 		if user != nil {
 			userid = user.ID
 		}
 		claims := &JWTPlaylistClaims{
-			RegisteredClaims: jwt.RegisteredClaims{
-				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Hour * 7)}, // Token expires in 7 hours
-			},
 			UserID:   userid,
 			Playlist: playlist.Playlist,
 			Download: allowDownloading,
@@ -109,8 +115,7 @@ func SetSignedPlaylistsForCourse(s *model.Stream, user *model.User, courseSlug s
 		if allowDownloading {
 			claims.FileName = DownloadFileName(courseSlug, s, playlist.Type)
 		}
-		t.Claims = claims
-		str, err := t.SignedString(Cfg.GetJWTKey())
+		str, err := claims.Sign()
 		if err != nil {
 			return err
 		}

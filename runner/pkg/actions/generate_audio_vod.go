@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"uuid"
 
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -69,16 +70,8 @@ func makeAudioPlaylist(ctx context.Context, job *protobuf.AudioVODJob, source st
 		return "", errors.New("the edge server needs an HTTP(S) URL")
 	}
 	versionDir := path.Join(strconv.FormatUint(job.GetStreamId(), 10), job.GetVersion().String())
-	// The edge's public address can be unreachable from the runner (localhost
-	// in Compose). Only use shared storage for this version's exact edge URL.
-	query := input.Query()
-	query.Del("jwt")
-	input.RawQuery = query.Encode()
-	if input.String() == edge.JoinPath("vod", versionDir, "playlist.m3u8").String() {
-		local := filepath.Join(config.Config.StoragePath, filepath.FromSlash(versionDir), "playlist.m3u8")
-		if info, err := os.Stat(local); err == nil && info.Mode().IsRegular() {
-			source = local
-		}
+	if local := sharedVODPlaylist(*input, edge); local != "" {
+		source = local
 	}
 	dir := path.Join(versionDir, "audio", uuid.NewV4().String())
 	created, err := convertAudioVOD(ctx, source, filepath.Join(config.Config.StoragePath, filepath.FromSlash(dir)))
@@ -86,4 +79,32 @@ func makeAudioPlaylist(ctx context.Context, job *protobuf.AudioVODJob, source st
 		return "", err
 	}
 	return edge.JoinPath("vod", dir, "playlist.m3u8").String(), nil
+}
+
+// A copy can point at another lecture's recording. The edge's public address
+// can be unreachable from the runner (localhost in Compose).
+func sharedVODPlaylist(input url.URL, edge *url.URL) string {
+	query, err := url.ParseQuery(input.RawQuery)
+	if err != nil {
+		return ""
+	}
+	query.Del("jwt")
+	input.RawQuery = query.Encode()
+	rel, ok := strings.CutPrefix(input.String(), edge.JoinPath("vod").String()+"/")
+	if !ok {
+		return ""
+	}
+	parts := strings.Split(rel, "/")
+	if len(parts) != 3 || parts[2] != "playlist.m3u8" {
+		return ""
+	}
+	id, err := strconv.ParseUint(parts[0], 10, 64)
+	if err != nil || id == 0 || protobuf.StreamVersion_value[parts[1]] == 0 {
+		return ""
+	}
+	local := filepath.Join(config.Config.StoragePath, filepath.FromSlash(rel))
+	if info, err := os.Stat(local); err == nil && info.Mode().IsRegular() {
+		return local
+	}
+	return ""
 }

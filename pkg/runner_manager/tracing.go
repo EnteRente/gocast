@@ -80,6 +80,9 @@ func notificationStream(n *protobuf.Notification) (id uint64, version protobuf.S
 		return d.StreamEnd.GetStream().GetId(), d.StreamEnd.GetStreamVersion(), true
 	case *protobuf.Notification_VodReady:
 		return d.VodReady.GetStream().GetId(), d.VodReady.GetStreamVersion(), true
+	case *protobuf.Notification_AudioVodFinished:
+		job := d.AudioVodFinished.GetJob()
+		return job.GetStreamId(), job.GetVersion(), true
 	case *protobuf.Notification_ThumbnailReady:
 		return d.ThumbnailReady.GetStream().GetId(), d.ThumbnailReady.GetStreamVersion(), true
 	case *protobuf.Notification_TranscodingProgress:

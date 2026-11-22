@@ -6,7 +6,9 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
+	"github.com/tum-dev/gocast/runner/config"
 	"github.com/tum-dev/gocast/runner/pkg/actions"
 	"github.com/tum-dev/gocast/runner/pkg/ptr"
 	"github.com/tum-dev/gocast/runner/protobuf"
@@ -34,7 +36,9 @@ func (r *Runner) resolveAudioVODSource(ctx context.Context, job *protobuf.AudioV
 	}
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	source, err := client.ResolveAudioVODSource(ctx, job)
+	req := proto.CloneOf(job)
+	req.EdgeServer = ptr.Take(config.Config.EdgeServer)
+	source, err := client.ResolveAudioVODSource(ctx, req)
 	if shouldReconnect(err) {
 		r.invalidateManagerConn(client)
 	}

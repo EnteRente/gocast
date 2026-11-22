@@ -13,6 +13,9 @@ message AudioVODJob {
   uint64 stream_id = 1;
   StreamVersion version = 2;
   string generation = 3;
+  // Supplied only by a runner resolving the source. Its public edge can
+  // differ from the archive in the manager's vodURLTemplate.
+  string edge_server = 4;
 }
 
 message GenerateAudioVODResponse {

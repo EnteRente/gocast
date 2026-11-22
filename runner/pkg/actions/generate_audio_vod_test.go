@@ -40,6 +40,13 @@ func TestGenerateAudioVOD(t *testing.T) {
 	if err := os.Rename(filepath.Dir(local), filepath.Join(storage, versionDir)); err != nil {
 		t.Fatal(err)
 	}
+	copySource := "4/STREAM_VERSION_PRESENTATION"
+	if err := os.MkdirAll(filepath.Join(storage, "4"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(filepath.Dir(makeAudioVODInput(t, "aac", "3")), filepath.Join(storage, copySource)); err != nil {
+		t.Fatal(err)
+	}
 	remote := serveAudioVOD(t, makeAudioVODInput(t, "aac", "4"), nil)
 	silent := serveAudioVOD(t, makeAudioVODInput(t, "", "2"), nil)
 	for _, tc := range []struct {
@@ -47,6 +54,7 @@ func TestGenerateAudioVOD(t *testing.T) {
 		duration    float64
 	}{
 		{"shared volume", edge.URL + "/vod/" + versionDir + "/playlist.m3u8?jwt=test", 2},
+		{"copied lecture", edge.URL + "/vod/" + copySource + "/playlist.m3u8?jwt=test", 3},
 		{"remote", remote + "/playlist.m3u8", 4},
 		{"silent", silent + "/playlist.m3u8", 0},
 		{"unreadable", remote + "/missing.m3u8", 0},
