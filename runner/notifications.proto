@@ -4,6 +4,7 @@ package protobuf;
 option go_package = "runner/protobuf";
 
 import "commons.proto";
+import "audio_vod.proto";
 
 message Notification {
   oneof data {
@@ -19,6 +20,7 @@ message Notification {
     DurationProbedNotification duration_probed = 11;
     SpriteReadyNotification sprite_ready = 12;
     WaveformReadyNotification waveform_ready = 13;
+    AudioVODFinishedNotification audio_vod_finished = 14;
   }
   // W3C traceparent of the runner span that produced this notification, so that the
   // manager's handling of it joins the trace of the job. Empty when tracing is off, and

@@ -368,6 +368,8 @@ func (m *Manager) handleNotification(ctx context.Context, notification *protobuf
 		return &protobuf.NotificationResponse{}, m.streamEnded(ctx, notification.GetStreamEnd())
 	case *protobuf.Notification_VodReady:
 		return m.handleVODReady(ctx, notification.GetVodReady())
+	case *protobuf.Notification_AudioVodFinished:
+		return &protobuf.NotificationResponse{}, m.finishAudioVOD(ctx, notification.GetAudioVodFinished())
 	case *protobuf.Notification_TranscodingProgress:
 		return m.handleTranscodingProgress(ctx, notification.GetTranscodingProgress())
 	case *protobuf.Notification_VodFailed:

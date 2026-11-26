@@ -63,6 +63,9 @@ type StreamsDao interface {
 	RemoveTranscodingProgress(streamVersion model.StreamVersion, streamId uint) error
 	GetTranscodingProgressByVersion(streamVersion model.StreamVersion, streamId uint) (model.TranscodingProgress, error)
 	SaveStream(vod *model.Stream) error
+	BeginAudioVOD(ctx context.Context, job model.AudioJob) error
+	ResolveAudioVOD(ctx context.Context, job model.AudioJob) (AudioSource, error)
+	FinishAudioVOD(ctx context.Context, job model.AudioJob, state model.AudioState, playlistURL string) error
 	ToggleVisibility(streamId uint, private bool) error
 	// SetDuration stores the length of the stream's VOD in seconds. It writes that one
 	// column, so it cannot undo what another update of the stream has just saved.

@@ -6,6 +6,7 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "commons.proto";
 import "notifications.proto";
+import "audio_vod.proto";
 
 option go_package = "runner/protobuf";
 
@@ -35,6 +36,8 @@ service RunnerService {
   // Cuts parts out of one version of a recorded stream. Progress and the result are
   // delivered like those of an upload: TranscodingProgress, VODReady and VODFailed.
   rpc CutVOD (CutVODRequest) returns (CutVODResponse) {}
+  // Queues audio extraction for one completed recording source.
+  rpc GenerateAudioVOD (AudioVODJob) returns (GenerateAudioVODResponse) {}
 }
 
 message StreamRequest {
@@ -171,6 +174,9 @@ service RunnerManagerService {
 
   // Notify sends a notification to gocast
   rpc Notify (Notification) returns (NotificationResponse) {}
+  // Resolve after acquiring a processing slot so time in the queue doesn't use
+  // up the signed playlist's lifetime. A superseded job has no source.
+  rpc ResolveAudioVODSource (AudioVODJob) returns (AudioVODSource) {}
 }
 
 message RegisterRequest {

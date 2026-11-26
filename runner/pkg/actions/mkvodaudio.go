@@ -62,11 +62,17 @@ func convertAudioVOD(ctx context.Context, inputPlaylist, audioDir string) (bool,
 	if ctx.Err() != nil {
 		return false, ctx.Err()
 	}
+	// FFmpeg can echo signed playlist and segment URLs to stderr. Keep the
+	// diagnostic tail for local files only; the job logs its returned error.
+	details := ""
+	if !strings.Contains(inputPlaylist, "://") {
+		details = ": " + stderr.String()
+	}
 	if err != nil {
-		return false, fmt.Errorf("convert audio VOD: %w: %s", err, stderr.String())
+		return false, fmt.Errorf("convert audio VOD: %w%s", err, details)
 	}
 	if stderr.skippedSegment {
-		return false, fmt.Errorf("audio source has unreadable segments: %s", stderr.String())
+		return false, fmt.Errorf("audio source has unreadable segments%s", details)
 	}
 	if err := replaceVOD(workDir, audioDir); err != nil {
 		return false, fmt.Errorf("publish audio VOD: %w", err)

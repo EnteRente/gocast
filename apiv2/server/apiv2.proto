@@ -1594,6 +1594,18 @@ service AdminService {
       description: "Moves the camera to the preset, waits for it to arrive, and photographs it. Requires the server.administer permission."
     };
   }
+
+  rpc generateAudioVOD(GenerateAudioVODRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/admin/streams/{stream_id}/audio"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: "Maintenance"
+      summary: "Queue audio generation for one recorded source."
+      description: "Choose the combined, camera, or presentation source of a completed recording. The runner reads its stored playlist and publishes audio when processing finishes. Requires the server.administer permission."
+    };
+  }
 }
 
 ///////////////////////////////
@@ -4492,4 +4504,10 @@ message DecideIntegrationAuthorizationRequest {
 
 message DecideIntegrationAuthorizationResponse {
   string redirect_url = 1;
+}
+
+message GenerateAudioVODRequest {
+  uint32 stream_id = 1;
+  // Select exactly one recorded source.
+  WatchViewKind source = 2;
 }

@@ -4031,6 +4031,7 @@ const (
 	AdminService_RefreshLectureHallPresetsAdmin_FullMethodName      = "/protobuf.AdminService/refreshLectureHallPresetsAdmin"
 	AdminService_SetDefaultCameraPresetAdmin_FullMethodName         = "/protobuf.AdminService/setDefaultCameraPresetAdmin"
 	AdminService_TakeCameraPresetSnapshotAdmin_FullMethodName       = "/protobuf.AdminService/takeCameraPresetSnapshotAdmin"
+	AdminService_GenerateAudioVOD_FullMethodName                    = "/protobuf.AdminService/generateAudioVOD"
 )
 
 // AdminServiceClient is the client API for AdminService service.
@@ -4104,6 +4105,7 @@ type AdminServiceClient interface {
 	RefreshLectureHallPresetsAdmin(ctx context.Context, in *RefreshLectureHallPresetsAdminRequest, opts ...grpc.CallOption) (*LectureHallAdmin, error)
 	SetDefaultCameraPresetAdmin(ctx context.Context, in *SetDefaultCameraPresetAdminRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	TakeCameraPresetSnapshotAdmin(ctx context.Context, in *TakeCameraPresetSnapshotAdminRequest, opts ...grpc.CallOption) (*CameraPresetAdmin, error)
+	GenerateAudioVOD(ctx context.Context, in *GenerateAudioVODRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type adminServiceClient struct {
@@ -4554,6 +4556,16 @@ func (c *adminServiceClient) TakeCameraPresetSnapshotAdmin(ctx context.Context, 
 	return out, nil
 }
 
+func (c *adminServiceClient) GenerateAudioVOD(ctx context.Context, in *GenerateAudioVODRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, AdminService_GenerateAudioVOD_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AdminServiceServer is the server API for AdminService service.
 // All implementations must embed UnimplementedAdminServiceServer
 // for forward compatibility.
@@ -4625,6 +4637,7 @@ type AdminServiceServer interface {
 	RefreshLectureHallPresetsAdmin(context.Context, *RefreshLectureHallPresetsAdminRequest) (*LectureHallAdmin, error)
 	SetDefaultCameraPresetAdmin(context.Context, *SetDefaultCameraPresetAdminRequest) (*emptypb.Empty, error)
 	TakeCameraPresetSnapshotAdmin(context.Context, *TakeCameraPresetSnapshotAdminRequest) (*CameraPresetAdmin, error)
+	GenerateAudioVOD(context.Context, *GenerateAudioVODRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedAdminServiceServer()
 }
 
@@ -4766,6 +4779,9 @@ func (UnimplementedAdminServiceServer) SetDefaultCameraPresetAdmin(context.Conte
 }
 func (UnimplementedAdminServiceServer) TakeCameraPresetSnapshotAdmin(context.Context, *TakeCameraPresetSnapshotAdminRequest) (*CameraPresetAdmin, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TakeCameraPresetSnapshotAdmin not implemented")
+}
+func (UnimplementedAdminServiceServer) GenerateAudioVOD(context.Context, *GenerateAudioVODRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GenerateAudioVOD not implemented")
 }
 func (UnimplementedAdminServiceServer) mustEmbedUnimplementedAdminServiceServer() {}
 func (UnimplementedAdminServiceServer) testEmbeddedByValue()                      {}
@@ -5580,6 +5596,24 @@ func _AdminService_TakeCameraPresetSnapshotAdmin_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AdminService_GenerateAudioVOD_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GenerateAudioVODRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdminServiceServer).GenerateAudioVOD(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AdminService_GenerateAudioVOD_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdminServiceServer).GenerateAudioVOD(ctx, req.(*GenerateAudioVODRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AdminService_ServiceDesc is the grpc.ServiceDesc for AdminService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -5762,6 +5796,10 @@ var AdminService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "takeCameraPresetSnapshotAdmin",
 			Handler:    _AdminService_TakeCameraPresetSnapshotAdmin_Handler,
+		},
+		{
+			MethodName: "generateAudioVOD",
+			Handler:    _AdminService_GenerateAudioVOD_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

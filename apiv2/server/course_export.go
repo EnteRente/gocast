@@ -68,18 +68,20 @@ func (a *API) ExportCourseVideos(ctx context.Context, req *protobuf.ExportCourse
 	return &protobuf.ExportCourseVideosResponse{Videos: videos}, nil
 }
 
+var recordingVersions = map[protobuf.WatchViewKind]model.StreamVersion{
+	protobuf.WatchViewKind_WATCH_VIEW_KIND_COMBINED:     model.COMB,
+	protobuf.WatchViewKind_WATCH_VIEW_KIND_PRESENTATION: model.PRES,
+	protobuf.WatchViewKind_WATCH_VIEW_KIND_CAMERA:       model.CAM,
+}
+
 // exportVersions maps the requested kind to the versions to export. Unspecified means
 // every version a lecture has, so an export is complete unless the caller narrows it.
 func exportVersions(kind protobuf.WatchViewKind) ([]model.StreamVersion, error) {
-	switch kind {
-	case protobuf.WatchViewKind_WATCH_VIEW_KIND_UNSPECIFIED:
+	if kind == protobuf.WatchViewKind_WATCH_VIEW_KIND_UNSPECIFIED {
 		return []model.StreamVersion{model.COMB, model.PRES, model.CAM}, nil
-	case protobuf.WatchViewKind_WATCH_VIEW_KIND_COMBINED:
-		return []model.StreamVersion{model.COMB}, nil
-	case protobuf.WatchViewKind_WATCH_VIEW_KIND_PRESENTATION:
-		return []model.StreamVersion{model.PRES}, nil
-	case protobuf.WatchViewKind_WATCH_VIEW_KIND_CAMERA:
-		return []model.StreamVersion{model.CAM}, nil
+	}
+	if version, ok := recordingVersions[kind]; ok {
+		return []model.StreamVersion{version}, nil
 	}
 	return nil, e.WithStatus(http.StatusBadRequest, errors.New("unknown video kind"))
 }

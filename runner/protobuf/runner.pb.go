@@ -1184,7 +1184,7 @@ var File_runner_proto protoreflect.FileDescriptor
 
 const file_runner_proto_rawDesc = "" +
 	"\n" +
-	"\frunner.proto\x12\bprotobuf\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\rcommons.proto\x1a\x13notifications.proto\"\x85\x03\n" +
+	"\frunner.proto\x12\bprotobuf\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\rcommons.proto\x1a\x13notifications.proto\x1a\x0faudio_vod.proto\"\x85\x03\n" +
 	"\rStreamRequest\x12\x1b\n" +
 	"\tstream_id\x18\x01 \x01(\x04R\bstreamId\x121\n" +
 	"\aversion\x18\x02 \x01(\x0e2\x17.protobuf.StreamVersionR\aversion\x12,\n" +
@@ -1255,7 +1255,7 @@ const file_runner_proto_rawDesc = "" +
 	"\bhostname\x18\x01 \x01(\tR\bhostname\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\x05R\x04port\x12\x18\n" +
 	"\aversion\x18\x03 \x01(\tR\aversion\"\x12\n" +
-	"\x10RegisterResponse2\x98\x05\n" +
+	"\x10RegisterResponse2\xe9\x05\n" +
 	"\rRunnerService\x12D\n" +
 	"\rRequestStream\x12\x17.protobuf.StreamRequest\x1a\x18.protobuf.StreamResponse\"\x00\x12M\n" +
 	"\x10RequestStreamEnd\x12\x1a.protobuf.StreamEndRequest\x1a\x1b.protobuf.StreamEndResponse\"\x00\x12W\n" +
@@ -1264,10 +1264,12 @@ const file_runner_proto_rawDesc = "" +
 	"\rPrepareUpload\x12\x1e.protobuf.PrepareUploadRequest\x1a\x1f.protobuf.PrepareUploadResponse\"\x00\x12T\n" +
 	"\x13GenerateLivePreview\x12\x1c.protobuf.LivePreviewRequest\x1a\x1d.protobuf.LivePreviewResponse\"\x00\x12J\n" +
 	"\x0fRequestWaveform\x12\x19.protobuf.WaveformRequest\x1a\x1a.protobuf.WaveformResponse\"\x00\x12=\n" +
-	"\x06CutVOD\x12\x17.protobuf.CutVODRequest\x1a\x18.protobuf.CutVODResponse\"\x002\x9f\x01\n" +
+	"\x06CutVOD\x12\x17.protobuf.CutVODRequest\x1a\x18.protobuf.CutVODResponse\"\x00\x12O\n" +
+	"\x10GenerateAudioVOD\x12\x15.protobuf.AudioVODJob\x1a\".protobuf.GenerateAudioVODResponse\"\x002\xeb\x01\n" +
 	"\x14RunnerManagerService\x12C\n" +
 	"\bRegister\x12\x19.protobuf.RegisterRequest\x1a\x1a.protobuf.RegisterResponse\"\x00\x12B\n" +
-	"\x06Notify\x12\x16.protobuf.Notification\x1a\x1e.protobuf.NotificationResponse\"\x00B\x11Z\x0frunner/protobufb\beditionsp\xe8\a"
+	"\x06Notify\x12\x16.protobuf.Notification\x1a\x1e.protobuf.NotificationResponse\"\x00\x12J\n" +
+	"\x15ResolveAudioVODSource\x12\x15.protobuf.AudioVODJob\x1a\x18.protobuf.AudioVODSource\"\x00B\x11Z\x0frunner/protobufb\beditionsp\xe8\a"
 
 var (
 	file_runner_proto_rawDescOnce sync.Once
@@ -1307,8 +1309,11 @@ var file_runner_proto_goTypes = []any{
 	(StreamVersion)(0),                  // 21: protobuf.StreamVersion
 	(*timestamppb.Timestamp)(nil),       // 22: google.protobuf.Timestamp
 	(*durationpb.Duration)(nil),         // 23: google.protobuf.Duration
-	(*Notification)(nil),                // 24: protobuf.Notification
-	(*NotificationResponse)(nil),        // 25: protobuf.NotificationResponse
+	(*AudioVODJob)(nil),                 // 24: protobuf.AudioVODJob
+	(*Notification)(nil),                // 25: protobuf.Notification
+	(*GenerateAudioVODResponse)(nil),    // 26: protobuf.GenerateAudioVODResponse
+	(*NotificationResponse)(nil),        // 27: protobuf.NotificationResponse
+	(*AudioVODSource)(nil),              // 28: protobuf.AudioVODSource
 }
 var file_runner_proto_depIdxs = []int32{
 	21, // 0: protobuf.StreamRequest.version:type_name -> protobuf.StreamVersion
@@ -1329,20 +1334,24 @@ var file_runner_proto_depIdxs = []int32{
 	10, // 15: protobuf.RunnerService.GenerateLivePreview:input_type -> protobuf.LivePreviewRequest
 	12, // 16: protobuf.RunnerService.RequestWaveform:input_type -> protobuf.WaveformRequest
 	14, // 17: protobuf.RunnerService.CutVOD:input_type -> protobuf.CutVODRequest
-	16, // 18: protobuf.RunnerManagerService.Register:input_type -> protobuf.RegisterRequest
-	24, // 19: protobuf.RunnerManagerService.Notify:input_type -> protobuf.Notification
-	1,  // 20: protobuf.RunnerService.RequestStream:output_type -> protobuf.StreamResponse
-	3,  // 21: protobuf.RunnerService.RequestStreamEnd:output_type -> protobuf.StreamEndResponse
-	5,  // 22: protobuf.RunnerService.RequestSectionImages:output_type -> protobuf.SectionImageResponse
-	7,  // 23: protobuf.RunnerService.RegenerateThumbnail:output_type -> protobuf.RegenerateThumbnailResponse
-	9,  // 24: protobuf.RunnerService.PrepareUpload:output_type -> protobuf.PrepareUploadResponse
-	11, // 25: protobuf.RunnerService.GenerateLivePreview:output_type -> protobuf.LivePreviewResponse
-	13, // 26: protobuf.RunnerService.RequestWaveform:output_type -> protobuf.WaveformResponse
-	15, // 27: protobuf.RunnerService.CutVOD:output_type -> protobuf.CutVODResponse
-	17, // 28: protobuf.RunnerManagerService.Register:output_type -> protobuf.RegisterResponse
-	25, // 29: protobuf.RunnerManagerService.Notify:output_type -> protobuf.NotificationResponse
-	20, // [20:30] is the sub-list for method output_type
-	10, // [10:20] is the sub-list for method input_type
+	24, // 18: protobuf.RunnerService.GenerateAudioVOD:input_type -> protobuf.AudioVODJob
+	16, // 19: protobuf.RunnerManagerService.Register:input_type -> protobuf.RegisterRequest
+	25, // 20: protobuf.RunnerManagerService.Notify:input_type -> protobuf.Notification
+	24, // 21: protobuf.RunnerManagerService.ResolveAudioVODSource:input_type -> protobuf.AudioVODJob
+	1,  // 22: protobuf.RunnerService.RequestStream:output_type -> protobuf.StreamResponse
+	3,  // 23: protobuf.RunnerService.RequestStreamEnd:output_type -> protobuf.StreamEndResponse
+	5,  // 24: protobuf.RunnerService.RequestSectionImages:output_type -> protobuf.SectionImageResponse
+	7,  // 25: protobuf.RunnerService.RegenerateThumbnail:output_type -> protobuf.RegenerateThumbnailResponse
+	9,  // 26: protobuf.RunnerService.PrepareUpload:output_type -> protobuf.PrepareUploadResponse
+	11, // 27: protobuf.RunnerService.GenerateLivePreview:output_type -> protobuf.LivePreviewResponse
+	13, // 28: protobuf.RunnerService.RequestWaveform:output_type -> protobuf.WaveformResponse
+	15, // 29: protobuf.RunnerService.CutVOD:output_type -> protobuf.CutVODResponse
+	26, // 30: protobuf.RunnerService.GenerateAudioVOD:output_type -> protobuf.GenerateAudioVODResponse
+	17, // 31: protobuf.RunnerManagerService.Register:output_type -> protobuf.RegisterResponse
+	27, // 32: protobuf.RunnerManagerService.Notify:output_type -> protobuf.NotificationResponse
+	28, // 33: protobuf.RunnerManagerService.ResolveAudioVODSource:output_type -> protobuf.AudioVODSource
+	22, // [22:34] is the sub-list for method output_type
+	10, // [10:22] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
 	10, // [10:10] is the sub-list for extension extendee
 	0,  // [0:10] is the sub-list for field type_name
@@ -1355,6 +1364,7 @@ func file_runner_proto_init() {
 	}
 	file_commons_proto_init()
 	file_notifications_proto_init()
+	file_audio_vod_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
