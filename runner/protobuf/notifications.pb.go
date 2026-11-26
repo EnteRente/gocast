@@ -511,10 +511,8 @@ type VODReadyNotification struct {
 	Stream        *StreamInfo            `protobuf:"bytes,1,opt,name=stream" json:"stream,omitempty"`
 	StreamVersion *StreamVersion         `protobuf:"varint,2,opt,name=stream_version,json=streamVersion,enum=protobuf.StreamVersion" json:"stream_version,omitempty"`
 	Url           *string                `protobuf:"bytes,3,opt,name=url" json:"url,omitempty"`
-	// Stable across redelivery. Replacing video at the same URL has a new ID.
-	SourceRevision *string `protobuf:"bytes,4,opt,name=source_revision,json=sourceRevision" json:"source_revision,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *VODReadyNotification) Reset() {
@@ -564,13 +562,6 @@ func (x *VODReadyNotification) GetStreamVersion() StreamVersion {
 func (x *VODReadyNotification) GetUrl() string {
 	if x != nil && x.Url != nil {
 		return *x.Url
-	}
-	return ""
-}
-
-func (x *VODReadyNotification) GetSourceRevision() string {
-	if x != nil && x.SourceRevision != nil {
-		return *x.SourceRevision
 	}
 	return ""
 }
@@ -1273,12 +1264,11 @@ const file_notifications_proto_rawDesc = "" +
 	"\x15HeartbeatNotification\x12\x1a\n" +
 	"\bhostname\x18\x01 \x01(\tR\bhostname\x12\x1a\n" +
 	"\bdraining\x18\x02 \x01(\bR\bdraining\x12\x1b\n" +
-	"\tjob_count\x18\x03 \x01(\x04R\bjobCount\"\xbf\x01\n" +
+	"\tjob_count\x18\x03 \x01(\x04R\bjobCount\"\x96\x01\n" +
 	"\x14VODReadyNotification\x12,\n" +
 	"\x06stream\x18\x01 \x01(\v2\x14.protobuf.StreamInfoR\x06stream\x12>\n" +
 	"\x0estream_version\x18\x02 \x01(\x0e2\x17.protobuf.StreamVersionR\rstreamVersion\x12\x10\n" +
-	"\x03url\x18\x03 \x01(\tR\x03url\x12'\n" +
-	"\x0fsource_revision\x18\x04 \x01(\tR\x0esourceRevision\"\xab\x01\n" +
+	"\x03url\x18\x03 \x01(\tR\x03url\"\xab\x01\n" +
 	"\x1fTranscodingProgressNotification\x12,\n" +
 	"\x06stream\x18\x01 \x01(\v2\x14.protobuf.StreamInfoR\x06stream\x12>\n" +
 	"\x0estream_version\x18\x02 \x01(\x0e2\x17.protobuf.StreamVersionR\rstreamVersion\x12\x1a\n" +

@@ -53,8 +53,6 @@ message VODReadyNotification {
   StreamInfo stream = 1;
   StreamVersion stream_version = 2;
   string url = 3;
-  // Stable across redelivery. Replacing video at the same URL has a new ID.
-  string source_revision = 4;
 }
 
 // TranscodingProgressNotification reports how far the conversion of one version of an

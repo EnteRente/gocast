@@ -708,33 +708,18 @@ func (m *Manager) saveThumbnail(ctx context.Context, req *protobuf.ThumbnailRead
 
 func (m *Manager) handleVODReady(ctx context.Context, notification *protobuf.VODReadyNotification) (*protobuf.NotificationResponse, error) {
 	m.logger.Debug("vodReady", "payload", notification)
-	streamID, playlistURL := notification.GetStream().GetId(), notification.GetUrl()
-	if streamID == 0 || playlistURL == "" {
-		return nil, status.Error(codes.InvalidArgument, "VODReady requires a stream ID and playlist URL")
-	}
-	stream, err := m.dao.StreamsDao.GetStreamByID(ctx, strconv.FormatUint(streamID, 10))
+	streamId := notification.Stream.GetId()
+	stream, err := m.dao.StreamsDao.GetStreamByID(ctx, strconv.FormatUint(streamId, 10))
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		// The stream was deleted while its VOD was made, which is easy for an upload.
 		// The runner retries every error it gets back and retrying cannot bring the
 		// stream back, so the notification is acknowledged instead.
-		m.logger.Warn("dropping VOD for a stream that no longer exists", "stream", streamID)
+		m.logger.Warn("dropping VOD for a stream that no longer exists", "stream", streamId)
 		return &protobuf.NotificationResponse{}, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	var version model.StreamVersion
-	switch notification.GetStreamVersion() {
-	case protobuf.StreamVersion_STREAM_VERSION_COMBINED:
-		version, stream.PlaylistUrl = model.COMB, playlistURL
-	case protobuf.StreamVersion_STREAM_VERSION_PRESENTATION:
-		version, stream.PlaylistUrlPRES = model.PRES, playlistURL
-	case protobuf.StreamVersion_STREAM_VERSION_CAMERA:
-		version, stream.PlaylistUrlCAM = model.CAM, playlistURL
-	default:
-		return nil, status.Errorf(codes.InvalidArgument, "unknown VOD stream version %v", notification.GetStreamVersion())
-	}
-	var privateByDefault bool
 	if !stream.Recording {
 		// The first VOD of a stream follows the course's setting, as it did when workers
 		// reported it. Later versions and re-uploads keep what was set since. A stream
@@ -743,19 +728,28 @@ func (m *Manager) handleVODReady(ctx context.Context, notification *protobuf.VOD
 		if err != nil {
 			return nil, err
 		}
-		privateByDefault = course.VodPrivate
+		stream.Private = stream.Private || course.VodPrivate
 	}
-	err = m.dao.StreamsDao.SaveVODSource(ctx, stream.ID, version, playlistURL, notification.GetSourceRevision(), privateByDefault)
-	if errors.Is(err, gorm.ErrRecordNotFound) || errors.Is(err, dao.ErrRetiredVODRevision) {
-		return &protobuf.NotificationResponse{}, nil
+	modelVersion := model.COMB
+	switch *notification.StreamVersion {
+	case protobuf.StreamVersion_STREAM_VERSION_COMBINED:
+		stream.PlaylistUrl = notification.GetUrl()
+	case protobuf.StreamVersion_STREAM_VERSION_PRESENTATION:
+		modelVersion = model.PRES
+		stream.PlaylistUrlPRES = notification.GetUrl()
+	case protobuf.StreamVersion_STREAM_VERSION_CAMERA:
+		modelVersion = model.CAM
+		stream.PlaylistUrlCAM = notification.GetUrl()
 	}
+	stream.Recording = true
+	err = m.dao.StreamsDao.SaveStream(&stream)
 	if err != nil {
 		return nil, err
 	}
 
 	// The conversion is over: the card stops showing it. Before anything that can't be
 	// repeated, so that a failure here retries the whole notification.
-	if err := m.dao.StreamsDao.RemoveTranscodingProgress(version, stream.ID); err != nil {
+	if err := m.dao.StreamsDao.RemoveTranscodingProgress(modelVersion, stream.ID); err != nil {
 		return nil, status.Errorf(codes.Internal, "can't clear the transcoding progress: %v", err)
 	}
 
@@ -763,9 +757,9 @@ func (m *Manager) handleVODReady(ctx context.Context, notification *protobuf.VOD
 		return nil, err
 	}
 
-	err = m.requestSubtitles(ctx, stream, version)
+	err = m.requestSubtitles(ctx, stream, modelVersion)
 	if err != nil {
-		log.Error("failed to request subtitles", "stream", streamID, "version", version, "err", err)
+		log.Error("failed to request subtitles", "stream", streamId, "version", modelVersion, "err", err)
 	}
 
 	return &protobuf.NotificationResponse{}, nil

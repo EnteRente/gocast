@@ -63,7 +63,6 @@ type StreamsDao interface {
 	RemoveTranscodingProgress(streamVersion model.StreamVersion, streamId uint) error
 	GetTranscodingProgressByVersion(streamVersion model.StreamVersion, streamId uint) (model.TranscodingProgress, error)
 	SaveStream(vod *model.Stream) error
-	SaveVODSource(ctx context.Context, streamID uint, version model.StreamVersion, playlistURL, revision string, privateByDefault bool) error
 	BeginAudioVOD(ctx context.Context, job model.AudioJob) error
 	ResolveAudioVOD(ctx context.Context, job model.AudioJob) (AudioSource, error)
 	FinishAudioVOD(ctx context.Context, job model.AudioJob, state model.AudioState, playlistURL string) error

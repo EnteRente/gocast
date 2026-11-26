@@ -107,28 +107,6 @@ func TestRunActionRunsVoDActionsWhenStreamEndsOnItsOwn(t *testing.T) {
 	assertCalls(t, rec.get(), []string{"stream", "streamEnd", "mkVod", "checkVod", "mkThumb"})
 }
 
-func TestVODReadyRevisionChangesOnReupload(t *testing.T) {
-	r := newTestRunner()
-	publish := func(_ context.Context, _ *slog.Logger, notify chan *protobuf.Notification, _ map[string]any, _ *metrics.Broker) error {
-		notify <- &protobuf.Notification{Data: &protobuf.Notification_VodReady{VodReady: &protobuf.VODReadyNotification{
-			Stream:        &protobuf.StreamInfo{Id: ptr.Take(uint64(5))},
-			StreamVersion: ptr.Take(protobuf.StreamVersion_STREAM_VERSION_CAMERA),
-			Url:           ptr.Take("http://edge/vod/5/camera/playlist.m3u8"),
-		}}}
-		return nil
-	}
-	var previous string
-	for range 2 {
-		job := r.RunAction(nil, []actions.Action{publish}, nil, r.log)
-		waitForJob(t, r, job)
-		revision := (<-r.notifications).GetVodReady().GetSourceRevision()
-		if revision != job || revision == previous {
-			t.Fatalf("source revision %q, want job %q replacing %q", revision, job, previous)
-		}
-		previous = revision
-	}
-}
-
 // endJob ends the job the way the gRPC handler does and fails the test if the runner
 // does not know it.
 func endJob(t *testing.T, r *Runner, job string, discard bool) {

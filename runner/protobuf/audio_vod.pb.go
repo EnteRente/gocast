@@ -22,8 +22,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// A generation belongs to one request for one recording source. A replacement
-// invalidates it even when the new video has the same playlist URL.
+// Each request gets a generation so a late result cannot overwrite a newer one.
 type AudioVODJob struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	StreamId   *uint64                `protobuf:"varint,1,opt,name=stream_id,json=streamId" json:"stream_id,omitempty"`

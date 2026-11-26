@@ -594,20 +594,6 @@ func (mr *MockStreamsDaoMockRecorder) SaveTranscodingProgress(progress any) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveTranscodingProgress", reflect.TypeOf((*MockStreamsDao)(nil).SaveTranscodingProgress), progress)
 }
 
-// SaveVODSource mocks base method.
-func (m *MockStreamsDao) SaveVODSource(ctx context.Context, streamID uint, version model.StreamVersion, playlistURL, revision string, privateByDefault bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SaveVODSource", ctx, streamID, version, playlistURL, revision, privateByDefault)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SaveVODSource indicates an expected call of SaveVODSource.
-func (mr *MockStreamsDaoMockRecorder) SaveVODSource(ctx, streamID, version, playlistURL, revision, privateByDefault any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveVODSource", reflect.TypeOf((*MockStreamsDao)(nil).SaveVODSource), ctx, streamID, version, playlistURL, revision, privateByDefault)
-}
-
 // SetDuration mocks base method.
 func (m *MockStreamsDao) SetDuration(streamID uint, seconds uint32) error {
 	m.ctrl.T.Helper()

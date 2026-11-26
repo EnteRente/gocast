@@ -7,8 +7,7 @@ import "google/protobuf/empty.proto";
 
 option go_package = "runner/protobuf";
 
-// A generation belongs to one request for one recording source. A replacement
-// invalidates it even when the new video has the same playlist URL.
+// Each request gets a generation so a late result cannot overwrite a newer one.
 message AudioVODJob {
   uint64 stream_id = 1;
   StreamVersion version = 2;
